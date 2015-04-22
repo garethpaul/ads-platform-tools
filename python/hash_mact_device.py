@@ -1,4 +1,19 @@
 #!/usr/bin/env python
+"""
+ Copyright (C) 2015 Twitter Inc and other contributors.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+ """
 
 import sys
 import argparse
@@ -10,7 +25,7 @@ import yaml
 __version__ = "0.2"
 
 KEY_FILE = "mact_keys.yml"
-# KEY_FILE is a YAML file with two keys at the top level: production_base64 and development_base64. 
+# KEY_FILE is a YAML file with two keys at the top level: production_base64 and development_base64.
 # each represents the base64 encoded HMAC key used for that environment
 
 def parse_input():
@@ -47,7 +62,7 @@ def fetch_hmac_key(environment):
 
     if key_environment in data:
         key_base64 = data[key_environment]
-        
+
         if key_base64:
             return base64.b64decode(key_base64)
 
@@ -84,5 +99,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

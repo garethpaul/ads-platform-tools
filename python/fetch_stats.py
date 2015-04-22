@@ -1,4 +1,19 @@
 #!/usr/bin/env python
+"""
+ Copyright (C) 2015 Twitter Inc and other contributors.
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+ """
 
 import requests
 import oauth2 as oauth
@@ -63,25 +78,25 @@ def main(options):
   # fetch campaigns
   resource_path = '/0/accounts/%s/campaigns?with_deleted=true&count=1000' % account
   data = get_data(user_twurl, 'GET', headers, DOMAIN + resource_path)
-  
+
   # filter campaigns
   print("Pre-filtered data:\t\t%s" % len(data))
   campaigns = check(data, start_time, end_time, 'funding_instrument_id', funding_instruments)
   print("Campaigns:\t\t\t%s" % len(campaigns))
-  
+
   # fetch line items
   resource_path = '/0/accounts/%s/line_items?with_deleted=true&count=1000' % account
   data = get_data(user_twurl, 'GET', headers, DOMAIN + resource_path)
-  
+
   # filter line items
   print("Pre-filtered data:\t\t%s" % len(data))
   line_items = check(data, start_time, end_time, 'campaign_id', campaigns)
   print("Line items:\t\t\t%s" % len(line_items))
-  
+
   # fetch promoted_tweets
   resource_path = '/0/accounts/%s/promoted_tweets?with_deleted=true&count=1000' % account
   data = get_data(user_twurl, 'GET', headers, DOMAIN + resource_path)
-  
+
   # filter promoted_tweets
   print("Pre-filtered data:\t\t%s" % len(data))
   promoted_tweets = check(data, start_time, end_time, 'line_item_id', line_items)
@@ -95,7 +110,7 @@ def main(options):
 
   if len(line_items) > 0:
     print("\tfetching stats for %s line items" % len(line_items))
-    (query_count, cost_total, rate_limited_query_count) = gather_stats(user_twurl, headers, account, 'line_items', 
+    (query_count, cost_total, rate_limited_query_count) = gather_stats(user_twurl, headers, account, 'line_items',
                                                                        start_time, end_time, line_items)
 
     total_query_count += query_count
@@ -103,7 +118,7 @@ def main(options):
 
   if len(promoted_tweets) > 0:
     print("\tfetching stats for %s promoted tweets" % len(promoted_tweets))
-    (query_count, cost_total, rate_limited_query_count) = gather_stats(user_twurl, headers, account, 'promoted_tweets', 
+    (query_count, cost_total, rate_limited_query_count) = gather_stats(user_twurl, headers, account, 'promoted_tweets',
                                                                        start_time, end_time, promoted_tweets)
 
     total_query_count += query_count
@@ -115,8 +130,8 @@ def main(options):
     if len(line_items) > 0:
       print("\tfetching segmentation stats for %s line items" % len(line_items))
       for i in NON_SUB_PARAM_SEGMENTATION_TYPES:
-        (query_count, cost_total, rate_limited_query_count) = gather_stats(user_twurl, headers, account, 
-                                                                           'line_items', start_time, end_time, 
+        (query_count, cost_total, rate_limited_query_count) = gather_stats(user_twurl, headers, account,
+                                                                           'line_items', start_time, end_time,
                                                                            line_items, i)
 
         total_query_count += query_count
@@ -127,8 +142,8 @@ def main(options):
     if len(promoted_tweets) > 0:
       print("\tfetching segmentation stats for %s promoted tweets" % len(promoted_tweets))
       for i in NON_SUB_PARAM_SEGMENTATION_TYPES:
-        (query_count, cost_total, rate_limited_query_count) = gather_stats(user_twurl, headers, account, 
-                                                                           'promoted_tweets', start_time, 
+        (query_count, cost_total, rate_limited_query_count) = gather_stats(user_twurl, headers, account,
+                                                                           'promoted_tweets', start_time,
                                                                            end_time, promoted_tweets, i)
 
         total_query_count += query_count
@@ -155,13 +170,13 @@ def main(options):
   elapsed = (time.clock() - start)
   print('Time elapsed:\t\t\t%s' % elapsed)
 
-def input(): 
+def input():
   p = argparse.ArgumentParser(description='Fetch Twitter Ads Account Stats')
 
   p.add_argument('-a', '--account', required=True, dest='account_id', help='Ads Account ID')
   p.add_argument('-A', '--header', dest='headers', action='append', help='HTTP headers to include')
   p.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Verbose outputs cost avgs')
-  p.add_argument('-vv', '--very-verbose', dest='veryverbose', action='store_true', 
+  p.add_argument('-vv', '--very-verbose', dest='veryverbose', action='store_true',
                  help='Very verbose outputs API queries made')
   p.add_argument('-s', '--segmentation', dest='segmentation', help='Pull segmentation stats',
                  action='store_true')
@@ -171,6 +186,9 @@ def input():
   return args
 
 def twurlauth():
+  """
+    Returns the authentication data.
+  """
   with open(os.path.expanduser('~/.twurlrc'), 'r') as f:
     contents = yaml.load(f)
     f.close()
@@ -178,13 +196,21 @@ def twurlauth():
   default_user = contents["configuration"]["default_profile"][0]
 
   CONSUMER_KEY = contents["configuration"]["default_profile"][1]
-  CONSUMER_SECRET = contents["profiles"][default_user][CONSUMER_KEY]["consumer_secret"] 
+  CONSUMER_SECRET = contents["profiles"][default_user][CONSUMER_KEY]["consumer_secret"]
   USER_OAUTH_TOKEN = contents["profiles"][default_user][CONSUMER_KEY]["token"]
   USER_OAUTH_TOKEN_SECRET = contents["profiles"][default_user][CONSUMER_KEY]["secret"]
 
   return CONSUMER_KEY, CONSUMER_SECRET, USER_OAUTH_TOKEN, USER_OAUTH_TOKEN_SECRET
 
 def request(user_twurl, http_method, headers, url):
+  """
+    Returns data from a single request.
+    Args:
+        user_twurl = twurlauth()
+        http_method = PUT, POST or GET
+        headers = http headers
+        url = endpoint url
+  """
   CONSUMER_KEY=user_twurl[0]
   CONSUMER_SECRET = user_twurl[1]
   USER_OAUTH_TOKEN = user_twurl[2]
@@ -210,6 +236,14 @@ def request(user_twurl, http_method, headers, url):
   return response, data
 
 def get_data(user_twurl, http_method, headers, url):
+  """
+    Returns data from multiple request e.g. cursors
+    Args:
+        user_twurl = twurlauth()
+        http_method = PUT, POST or GET
+        headers = http headers
+        url = endpoint url
+  """
   data = []
 
   res_headers, response = request(user_twurl, http_method, headers, url)
@@ -231,7 +265,19 @@ def get_data(user_twurl, http_method, headers, url):
   return data
 
 def gather_stats(user_twurl, headers, account_id, entity_type, start_time, end_time, input_entities, segmentation=None):
-
+  """
+    Returns stats data
+    Args:
+        user_twurl = twurlauth()
+        headers = http headers
+        account_id = the account of the user/account
+        entity_type = type of account
+        start_time = start time of stats request
+        end_time = ending time of stats request
+        input_entities = a list of entities
+        http_method = PUT, POST or GET
+        segmention = segmentation_type
+  """
   entities = list(input_entities)
   resource_url = DOMAIN + "/0/stats/accounts/%s/%s" % (account_id, entity_type)
   query_params = '?granularity=HOUR&start_time=%sZ&end_time=%sZ' % (start_time.isoformat(), end_time.isoformat())
@@ -265,7 +311,7 @@ def gather_stats(user_twurl, headers, account_id, entity_type, start_time, end_t
     if 'x-request-cost' in res_headers:
       cost_total += int(res_headers['x-request-cost'])
 
-      if ('x-cost-rate-limit-remaining' in res_headers and 
+      if ('x-cost-rate-limit-remaining' in res_headers and
           int(res_headers['x-cost-rate-limit-remaining']) == 0) and res_headers['status'] == '429':
         rate_limit_exceeded_sleep_in_sec = int(res_headers['x-cost-rate-limit-reset']) - int(time.time())
 
@@ -296,7 +342,14 @@ def gather_stats(user_twurl, headers, account_id, entity_type, start_time, end_t
   return query_count, cost_total, rate_limited_query_count
 
 def check(data, start_time, end_time, filter_field=None, filter_data=[]):
-
+  """
+    Returns a list of ids
+    Args:
+        data = json format data
+        start_time = start time of request
+        end_time = end time of request
+        filter_filed = filtered fields
+  """
   d = []
 
   if data and len(data) > 0:
@@ -317,12 +370,19 @@ def check(data, start_time, end_time, filter_field=None, filter_data=[]):
   return d
 
 def format_timestamp(timestamp):
+  """
+    Returns a string representation of a timestamp to be used by the api
+    Args:
+        timestamp = datestring
+  """
   return datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
 
 def linesep():
+  """
+    Returns a line seperator
+  """
   print('-----------------------------------------------')
 
 if __name__=='__main__':
   options = input()
   main(options)
-
